@@ -58,7 +58,7 @@ def double_oracle(meta_games, empirical_games, checkpoint_dir):
 
 
 
-def fictitious_play(meta_games, empirical_games):
+def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
     num_players = len(meta_games)
     num_strategies, _ = np.shape(meta_games[0])
     subgames = []
