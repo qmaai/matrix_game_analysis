@@ -39,22 +39,23 @@ def double_oracle(meta_games, empirical_games, checkpoint_dir):
     idx = np.ix_(empirical_games[0], empirical_games[1])
     for meta_game in meta_games:
         subgames.append(meta_game[idx])
-    nash = gambit_solve(subgames, mode="one", checkpoint_dir=checkpoint_dir)
+    nash = gambit_solve(subgames, mode="one", checkpoint_dir=checkpoint_dir[:-1])
     nash_payoffs = mixed_strategy_payoff(subgames, nash)
 
     meta_game_nash = []
     for i, empirical_game in enumerate(empirical_games):
         ne = np.zeros(num_strategies)
-        ne = np.put(ne, empirical_game, nash[i])
+        np.put(ne, empirical_game, nash[i])
         meta_game_nash.append(ne)
 
     dev_strs, dev_payoff = deviation_strategy(meta_games, meta_game_nash)
-
+    nashconv = 0
     for player in range(num_players):
+        nashconv += np.maximum(dev_payoff[player] - nash_payoffs[player], 0)
         if dev_payoff[player] <= nash_payoffs[player]:
             dev_strs[player] = None
 
-    return dev_strs
+    return dev_strs, nashconv
 
 
 
@@ -65,14 +66,19 @@ def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
     idx = np.ix_(empirical_games[0], empirical_games[1])
     for meta_game in meta_games:
         subgames.append(meta_game[idx])
-    nash = np.ones(len(empirical_games[0]))
-    nash /= np.sum(nash)
+
+    nash0 = np.ones(len(empirical_games[0]))
+    nash0 /= np.sum(nash0)
+    nash1 = np.ones(len(empirical_games[1]))
+    nash1 /= np.sum(nash1)
+    nash = [nash0, nash1]
+
     nash_payoffs = mixed_strategy_payoff(subgames, nash)
 
     meta_game_nash = []
     for i, empirical_game in enumerate(empirical_games):
         ne = np.zeros(num_strategies)
-        ne = np.put(ne, empirical_game, nash[i])
+        np.put(ne, empirical_game, nash[i])
         meta_game_nash.append(ne)
 
     dev_strs, dev_payoff = deviation_strategy(meta_games, meta_game_nash)
@@ -81,4 +87,4 @@ def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
         if dev_payoff[player] <= nash_payoffs[player]:
             dev_strs[player] = None
 
-    return dev_strs
+    return dev_strs, None
