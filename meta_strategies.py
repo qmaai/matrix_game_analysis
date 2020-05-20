@@ -1,4 +1,5 @@
 import numpy as np
+import collections
 from nash_solver.general_nash_solver import gambit_solve
 
 def mixed_strategy_payoff(meta_games, probs):
@@ -36,24 +37,25 @@ def double_oracle(meta_games, empirical_games, checkpoint_dir):
     num_players = len(meta_games)
     num_strategies, _ = np.shape(meta_games[0])
     subgames = []
-    idx = np.ix_(empirical_games[0], empirical_games[1])
+
+    idx0 = sorted(list(set(empirical_games[0])))
+    idx1 = sorted(list(set(empirical_games[1])))
+    idx = np.ix_(idx0, idx1)
     for meta_game in meta_games:
         subgames.append(meta_game[idx])
     nash = gambit_solve(subgames, mode="one", checkpoint_dir=checkpoint_dir[:-1])
     nash_payoffs = mixed_strategy_payoff(subgames, nash)
 
     meta_game_nash = []
-    for i, empirical_game in enumerate(empirical_games):
+    for i, idx in enumerate([idx0, idx1]):
         ne = np.zeros(num_strategies)
-        np.put(ne, empirical_game, nash[i])
+        np.put(ne, idx, nash[i])
         meta_game_nash.append(ne)
 
     dev_strs, dev_payoff = deviation_strategy(meta_games, meta_game_nash)
     nashconv = 0
     for player in range(num_players):
         nashconv += np.maximum(dev_payoff[player] - nash_payoffs[player], 0)
-        if dev_payoff[player] <= nash_payoffs[player]:
-            dev_strs[player] = None
 
     return dev_strs, nashconv
 
@@ -63,28 +65,37 @@ def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
     num_players = len(meta_games)
     num_strategies, _ = np.shape(meta_games[0])
     subgames = []
-    idx = np.ix_(empirical_games[0], empirical_games[1])
+    counter0 = collections.Counter(empirical_games[0])
+    counter1 = collections.Counter(empirical_games[1])
+
+    idx0 = sorted(list(set(empirical_games[0])))
+    idx1 = sorted(list(set(empirical_games[1])))
+    idx = np.ix_(idx0, idx1)
     for meta_game in meta_games:
         subgames.append(meta_game[idx])
 
-    nash0 = np.ones(len(empirical_games[0]))
+    nash0 = np.ones(len(idx0))
+    for i, item in enumerate(idx0):
+        nash0[i] = counter0[item]
     nash0 /= np.sum(nash0)
-    nash1 = np.ones(len(empirical_games[1]))
+
+    nash1 = np.ones(len(idx1))
+    for i, item in enumerate(idx1):
+        nash1[i] = counter1[item]
     nash1 /= np.sum(nash1)
     nash = [nash0, nash1]
 
     nash_payoffs = mixed_strategy_payoff(subgames, nash)
 
     meta_game_nash = []
-    for i, empirical_game in enumerate(empirical_games):
+    for i, idx in enumerate([idx0, idx1]):
         ne = np.zeros(num_strategies)
-        np.put(ne, empirical_game, nash[i])
+        np.put(ne, idx, nash[i])
         meta_game_nash.append(ne)
 
     dev_strs, dev_payoff = deviation_strategy(meta_games, meta_game_nash)
-
+    nashconv = 0
     for player in range(num_players):
-        if dev_payoff[player] <= nash_payoffs[player]:
-            dev_strs[player] = None
+        nashconv += np.maximum(dev_payoff[player] - nash_payoffs[player], 0)
 
-    return dev_strs, None
+    return dev_strs, nashconv

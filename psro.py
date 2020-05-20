@@ -52,9 +52,9 @@ def psro(generator, game_type, num_rounds, checkpoint_dir, meta_method_list=None
     DO_FP_trainer.loop()
 
     print("The current game type is ", game_type)
-    print("DO number of iters:", DO_trainer.num_used_iterations)
-    print("FP number of iters:", FP_trainer.num_used_iterations)
-    print("DO+FP number of iters:", DO_FP_trainer.num_used_iterations)
+    print("DO number of iters:", DO_trainer.nashconvs)
+    print("FP number of iters:", FP_trainer.nashconvs)
+    print("DO+FP number of iters:", DO_FP_trainer.nashconvs)
     print("====================================================")
 
     if not os.path.exists(checkpoint_dir):
@@ -63,11 +63,11 @@ def psro(generator, game_type, num_rounds, checkpoint_dir, meta_method_list=None
     with open(checkpoint_dir + game_type + '_meta_games.pkl','wb') as f:
         pickle.dump(meta_games, f)
     with open(checkpoint_dir + game_type + '_DO.pkl','wb') as f:
-        pickle.dump(DO_trainer.num_used_iterations, f)
+        pickle.dump(DO_trainer.nashconvs, f)
     with open(checkpoint_dir + game_type + '_FP.pkl','wb') as f:
-        pickle.dump(FP_trainer.num_used_iterations, f)
+        pickle.dump(FP_trainer.nashconvs, f)
     with open(checkpoint_dir + game_type + '_DO_SP.pkl','wb') as f:
-        pickle.dump(DO_FP_trainer.num_used_iterations, f)
+        pickle.dump(DO_FP_trainer.nashconvs, f)
 
 def main(argv):
     if len(argv) > 1:
@@ -77,7 +77,7 @@ def main(argv):
     checkpoint_dir = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     checkpoint_dir = os.path.join(os.getcwd(), checkpoint_dir) + '/'
 
-    game_list = ["zero_sum", "general_sum", "symmetric_zero_sum"]
+    game_list = ["zero_sum", "general_sum"]
 
     for game in game_list:
         psro(generator=generator,

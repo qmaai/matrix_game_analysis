@@ -8,6 +8,7 @@ class PSRO_trainer(object):
                  meta_method,
                  checkpoint_dir,
                  meta_method_list=None,
+                 num_iterations = 20,
                  blocks=False):
         self.meta_games = meta_games
         self.num_rounds = num_rounds
@@ -19,13 +20,13 @@ class PSRO_trainer(object):
         self.blocks = blocks
 
         self.empirical_games = [[], []]
-        self.num_iterations = 0
-        self.num_used_iterations = []
+        self.num_iterations = num_iterations
 
         self.fast_period = 1
         self.slow_period = 1
         self.fast_count = 1
         self.slow_count = 1
+        self.nashconvs = []
 
         self.selector = pure_exp(2,
                                  2,
@@ -37,7 +38,6 @@ class PSRO_trainer(object):
     def init_round(self):
         init_strategy = np.random.randint(0, self.num_strategies)
         self.empirical_games = [[init_strategy], [init_strategy]]
-        self.num_iterations = 0
         self.mode = 0
 
         if self.blocks:
@@ -46,19 +46,18 @@ class PSRO_trainer(object):
             self.blocks_nashconv = [nashconv]
 
     def iteration(self):
-        while True:
-            self.num_iterations += 1
-            dev_strs, _ = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
-            if dev_strs[0] in self.empirical_games[0] and dev_strs[1] in self.empirical_games[1]:
-                self.num_used_iterations.append(self.num_iterations)
-                break
-            if dev_strs[0] not in self.empirical_games[0] and dev_strs[0] is not None:
-                self.empirical_games[0].append(dev_strs[0])
-            if dev_strs[1] not in self.empirical_games[1] and dev_strs[1] is not None:
-                self.empirical_games[1].append(dev_strs[1])
+        nashconv_list = []
+        for _ in range(self.num_iterations):
+            dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
+            nashconv_list.append(nashconv)
+            self.empirical_games[0].append(dev_strs[0])
+            self.empirical_games[0] = sorted(self.empirical_games[0])
+            self.empirical_games[1].append(dev_strs[1])
+            self.empirical_games[1] = sorted(self.empirical_games[1])
             if self.meta_method_list is not None:
                 self.mode = 1 - self.mode
                 self.meta_method = self.meta_method_list[self.mode]
+        self.nashconvs.append(nashconv_list)
 
     def loop(self):
         for _ in range(self.num_rounds):
@@ -70,18 +69,14 @@ class PSRO_trainer(object):
 
     # For blocks
     def iteration_blocks(self):
-        while True:
-            self.num_iterations += 1
+        nashconv_list = []
+        for _ in range(self.num_iterations):
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
-            if not self.mode:
-                self.blocks_nashconv.append(nashconv)
-            if dev_strs[0] in self.empirical_games[0] and dev_strs[1] in self.empirical_games[1]:
-                self.num_used_iterations.append(self.num_iterations)
-                break
-            if dev_strs[0] not in self.empirical_games[0]:
-                self.empirical_games[0].append(dev_strs[0])
-            if dev_strs[1] not in self.empirical_games[1]:
-                self.empirical_games[1].append(dev_strs[1])
+            nashconv_list.append(nashconv)
+            self.empirical_games[0].append(dev_strs[0])
+            self.empirical_games[0] = sorted(self.empirical_games[0])
+            self.empirical_games[1].append(dev_strs[1])
+            self.empirical_games[1] = sorted(self.empirical_games[1])
             if self.meta_method_list is not None:
                 if self.mode:
                     self.fast_count -= 1

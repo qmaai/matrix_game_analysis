@@ -10,13 +10,14 @@ meta_game = np.array([[1,2,3],
                       [7,8,9]])
 
 meta_games = [meta_game, -meta_game]
-empirical_game = [[0,1], [0,1]]
-dev_strs, nashconv = fictitious_play(meta_games, empirical_game, './')
+
+empirical_games = [[0,1,1], [0,1,1]]
+
+dev_strs, nashconv = double_oracle(meta_games, empirical_games, './')
 print(dev_strs)
 print(nashconv)
-# probs = [np.array([1, 0, 0]), np.array([0, 0, 1])]
-# dev_strs, dev_payoff = deviation_strategy(meta_games, probs)
-# print(dev_strs)
-# print(dev_payoff)
 
 
+dev_strs, nashconv = fictitious_play(meta_games, empirical_games, './')
+print(dev_strs)
+print(nashconv)
