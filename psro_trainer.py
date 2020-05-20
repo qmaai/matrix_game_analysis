@@ -22,9 +22,9 @@ class PSRO_trainer(object):
         self.num_iterations = 0
         self.num_used_iterations = []
 
-        self.fast_period = 3
+        self.fast_period = 1
         self.slow_period = 1
-        self.fast_count = 3
+        self.fast_count = 1
         self.slow_count = 1
 
         self.selector = pure_exp(2,
@@ -51,6 +51,7 @@ class PSRO_trainer(object):
             dev_strs, _ = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
             if dev_strs[0] in self.empirical_games[0] and dev_strs[1] in self.empirical_games[1]:
                 self.num_used_iterations.append(self.num_iterations)
+                break
             if dev_strs[0] not in self.empirical_games[0] and dev_strs[0] is not None:
                 self.empirical_games[0].append(dev_strs[0])
             if dev_strs[1] not in self.empirical_games[1] and dev_strs[1] is not None:
@@ -76,6 +77,7 @@ class PSRO_trainer(object):
                 self.blocks_nashconv.append(nashconv)
             if dev_strs[0] in self.empirical_games[0] and dev_strs[1] in self.empirical_games[1]:
                 self.num_used_iterations.append(self.num_iterations)
+                break
             if dev_strs[0] not in self.empirical_games[0]:
                 self.empirical_games[0].append(dev_strs[0])
             if dev_strs[1] not in self.empirical_games[1]:

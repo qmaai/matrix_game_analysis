@@ -3,7 +3,7 @@ from nash_solver import subproc
 import os
 import pickle
 import itertools
-import logging
+# import logging
 
 """
 This script connects meta-games with gambit. It translates a meta-game to a payoff matrix format 
@@ -148,11 +148,11 @@ def decode_gambit_file(meta_games, mode="all", max_num_nash=10, checkpoint_dir=N
         raise ValueError("nash.txt file does not exist!")
     num_lines = file_len(nash_DIR)
 
-    logging.info("Number of NE is ", num_lines)
+    # logging.info("Number of NE is ", num_lines)
     if max_num_nash != None:
         if num_lines >= max_num_nash:
             num_lines = max_num_nash
-            logging.info("Number of NE is constrained by the num_nash.")
+            # logging.info("Number of NE is constrained by the num_nash.")
 
     shape = np.shape(meta_games[0])
     slice_idx = []
@@ -185,7 +185,8 @@ def decode_gambit_file(meta_games, mode="all", max_num_nash=10, checkpoint_dir=N
     elif mode == "one":
         return equilibria[0]
     else:
-        logging.info("mode is beyond all/pure/one.")
+        # logging.info("mode is beyond all/pure/one.")
+        raise ValueError
 
 
 def do_gambit_analysis(meta_games, mode, timeout = 600, method="lcp", method_pure_ne="enumpure", checkpoint_dir=None):
@@ -220,7 +221,7 @@ def do_gambit_analysis(meta_games, mode, timeout = 600, method="lcp", method_pur
             raise ValueError("nash.txt file does not exist!")
         num_lines = file_len(nash_DIR)
         if num_lines == 0:
-            logging.info("Pure NE does not exist. Return mixed NE.")
+            # logging.info("Pure NE does not exist. Return mixed NE.")
             mode = 'all'
             continue
         equilibria = decode_gambit_file(meta_games, mode, checkpoint_dir=checkpoint_dir)
@@ -228,9 +229,10 @@ def do_gambit_analysis(meta_games, mode, timeout = 600, method="lcp", method_pur
             break
         timeout += 120
         if timeout > 7200:
-            logging.warning("Gambit has been running for more than 2 hour.!")
-        logging.warning("Timeout has been added by 120s.")
-    logging.info('gambit_analysis done!')
+            raise ValueError
+            # logging.warning("Gambit has been running for more than 2 hour.!")
+        # logging.warning("Timeout has been added by 120s.")
+    # logging.info('gambit_analysis done!')
     return equilibria
 
 
