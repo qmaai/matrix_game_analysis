@@ -20,7 +20,7 @@ def psro(generator,
          num_rounds,
          checkpoint_dir,
          meta_method_list=None,
-         num_iterations = FLAGS.num_iterations,
+         num_iterations=20,
          blocks=False):
     if game_type == "zero_sum":
         meta_games = generator.zero_sum_game()
@@ -94,7 +94,8 @@ def main(argv):
         psro(generator=generator,
              game_type=game,
              num_rounds=FLAGS.num_rounds,
-             checkpoint_dir=checkpoint_dir)
+             checkpoint_dir=checkpoint_dir,
+             num_iterations=FLAGS.num_iterations)
 
 
 if __name__ == "__main__":
