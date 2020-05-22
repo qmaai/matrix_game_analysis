@@ -62,7 +62,6 @@ def double_oracle(meta_games, empirical_games, checkpoint_dir):
 
 
 def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
-    num_players = len(meta_games)
     num_strategies, _ = np.shape(meta_games[0])
     subgames = []
     counter0 = collections.Counter(empirical_games[0])
@@ -94,8 +93,9 @@ def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
         meta_game_nash.append(ne)
 
     dev_strs, dev_payoff = deviation_strategy(meta_games, meta_game_nash)
-    nashconv = 0
-    for player in range(num_players):
-        nashconv += np.maximum(dev_payoff[player] - nash_payoffs[player], 0)
 
-    return dev_strs, nashconv
+    # nashconv = 0
+    # for player in range(num_players):
+    #     nashconv += np.maximum(dev_payoff[player] - nash_payoffs[player], 0)
+
+    return dev_strs, None

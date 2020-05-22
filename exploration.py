@@ -96,7 +96,7 @@ class pure_exp(object):
         # Numbers are hyperparameters.
         if num_iters < 20:
             return 1
-        elif num_iters < 35:
+        elif num_iters < 30:
             return 5
         else:
             return 10

@@ -1,5 +1,6 @@
 import numpy as np
 from exploration import pure_exp
+from meta_strategies import double_oracle
 
 class PSRO_trainer(object):
     def __init__(self, meta_games,
@@ -16,7 +17,7 @@ class PSRO_trainer(object):
         self.num_strategies = num_strategies
         self.checkpoint_dir = checkpoint_dir
         self.meta_method_list = meta_method_list
-        self.mode = 1
+        self.mode = 0
         self.blocks = blocks
 
         self.empirical_games = [[], []]
@@ -28,12 +29,7 @@ class PSRO_trainer(object):
         self.slow_count = 1
         self.nashconvs = []
 
-        self.selector = pure_exp(2,
-                                 2,
-                                slow_period=self.slow_period,
-                                fast_period=self.fast_period,
-                                abs_value=True)
-        self.selector.arm_pulled = 0
+
 
     def init_round(self):
         init_strategy = np.random.randint(0, self.num_strategies)
@@ -44,12 +40,22 @@ class PSRO_trainer(object):
             nash_payoff = self.meta_games[init_strategy, init_strategy]
             nashconv = np.max(self.meta_games[:, init_strategy]) + np.max(self.meta_games[init_strategy, :]) - nash_payoff
             self.blocks_nashconv = [nashconv]
+            self.selector = pure_exp(2,
+                                     2,
+                                     slow_period=self.slow_period,
+                                     fast_period=self.fast_period,
+                                     abs_value=True)
+            self.selector.arm_pulled = 0
 
     def iteration(self):
         nashconv_list = []
         for _ in range(self.num_iterations):
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
-            nashconv_list.append(nashconv)
+            if nashconv is not None:
+                nashconv_list.append(nashconv)
+            else:
+                _, nashconv = double_oracle(self.meta_games, self.empirical_games, self.checkpoint_dir)
+                nashconv_list.append(nashconv)
             self.empirical_games[0].append(dev_strs[0])
             self.empirical_games[0] = sorted(self.empirical_games[0])
             self.empirical_games[1].append(dev_strs[1])
@@ -72,7 +78,13 @@ class PSRO_trainer(object):
         nashconv_list = []
         for _ in range(self.num_iterations):
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
-            nashconv_list.append(nashconv)
+            if nashconv is not None:
+                nashconv_list.append(nashconv)
+                if not self.mode:
+                    self.blocks_nashconv.append(nashconv)
+            else:
+                _, nashconv = double_oracle(self.meta_games, self.empirical_games, self.checkpoint_dir)
+                nashconv_list.append(nashconv)
             self.empirical_games[0].append(dev_strs[0])
             self.empirical_games[0] = sorted(self.empirical_games[0])
             self.empirical_games[1].append(dev_strs[1])
@@ -87,8 +99,8 @@ class PSRO_trainer(object):
                 else:
                     self.slow_count -= 1
                     if self.slow_count == 0:
-                        self.slow_count = self.fast_period
+                        self.slow_count = self.slow_period
                         self.mode = 1 - self.mode
-                        self.selector.update_weights(self.blocks_nashconv[-1]-self.blocks_nashconv[-2])
+                        self.selector.update_weights(self.blocks_nashconv[-2]-self.blocks_nashconv[-1])
                         next_method = self.selector.sample(self.num_iterations)
                         self.meta_method = self.meta_method_list[next_method]

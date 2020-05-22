@@ -12,8 +12,9 @@ import numpy as np
 FLAGS = flags.FLAGS
 
 flags.DEFINE_integer("num_rounds", 1, "The number of rounds starting with different.")
-flags.DEFINE_integer("num_strategies", 10, "The number of rounds starting with different.")
-flags.DEFINE_integer("num_iterations", 20, "The number of rounds starting with different.")
+flags.DEFINE_integer("num_strategies", 100, "The number of rounds starting with different.")
+flags.DEFINE_integer("num_iterations", 40, "The number of rounds starting with different.")
+flags.DEFINE_string("game_type", "zero_sum", "Type of synthetic game.")
 
 def psro(generator,
          game_type,
@@ -58,14 +59,25 @@ def psro(generator,
                               num_iterations=num_iterations,
                               blocks=blocks)
 
+    blocks_trainer = PSRO_trainer(meta_games=meta_games,
+                              num_strategies=generator.num_strategies,
+                              num_rounds=num_rounds,
+                              meta_method=double_oracle,
+                              checkpoint_dir=checkpoint_dir,
+                              meta_method_list=[double_oracle, fictitious_play],
+                              num_iterations=num_iterations,
+                              blocks=True)
+
     DO_trainer.loop()
     FP_trainer.loop()
     DO_FP_trainer.loop()
+    blocks_trainer.loop()
 
     print("The current game type is ", game_type)
     print("DO average:", np.mean(DO_trainer.nashconvs, axis=0))
     print("FP average:", np.mean(FP_trainer.nashconvs, axis=0))
     print("DO+FP average:", np.mean(DO_FP_trainer.nashconvs, axis=0))
+    print("blocks average:", np.mean(blocks_trainer.nashconvs, axis=0))
     print("====================================================")
 
     if not os.path.exists(checkpoint_dir):
@@ -79,6 +91,8 @@ def psro(generator,
         pickle.dump(FP_trainer.nashconvs, f)
     with open(checkpoint_dir + game_type + '_DO_SP.pkl','wb') as f:
         pickle.dump(DO_FP_trainer.nashconvs, f)
+    with open(checkpoint_dir + game_type + '_blocks.pkl','wb') as f:
+        pickle.dump(blocks_trainer.nashconvs, f)
 
 def main(argv):
     if len(argv) > 1:
@@ -88,14 +102,13 @@ def main(argv):
     checkpoint_dir = datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
     checkpoint_dir = os.path.join(os.getcwd(), checkpoint_dir) + '/'
 
-    game_list = ["zero_sum", "general_sum"]
+    # game_list = ["zero_sum", "general_sum"]
 
-    for game in game_list:
-        psro(generator=generator,
-             game_type=game,
-             num_rounds=FLAGS.num_rounds,
-             checkpoint_dir=checkpoint_dir,
-             num_iterations=FLAGS.num_iterations)
+    psro(generator=generator,
+         game_type=FLAGS.game_type,
+         num_rounds=FLAGS.num_rounds,
+         checkpoint_dir=checkpoint_dir,
+         num_iterations=FLAGS.num_iterations)
 
 
 if __name__ == "__main__":
