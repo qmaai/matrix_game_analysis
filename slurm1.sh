@@ -12,5 +12,5 @@
 
 module load python3.6-anaconda/5.2.0
 cd ${SLURM_SUBMIT_DIR}
-python psro.py --num_rounds=10 --num_strategies=100 --num_iterations=40 --game_type=zero_sum
+python psro.py --num_rounds=10 --num_strategies=100 --num_iterations=40 --game_type=general_sum
 
