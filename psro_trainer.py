@@ -1,6 +1,7 @@
 import numpy as np
 from exploration import pure_exp
 from meta_strategies import double_oracle
+from minimum_regret_profile import minimum_regret_profile_calculator
 
 class PSRO_trainer(object):
     def __init__(self, meta_games,
@@ -9,7 +10,7 @@ class PSRO_trainer(object):
                  meta_method,
                  checkpoint_dir,
                  meta_method_list=None,
-                 num_iterations = 20,
+                 num_iterations=20,
                  blocks=False):
         self.meta_games = meta_games
         self.num_rounds = num_rounds
@@ -17,6 +18,7 @@ class PSRO_trainer(object):
         self.num_strategies = num_strategies
         self.checkpoint_dir = checkpoint_dir
         self.meta_method_list = meta_method_list
+        self.mrcp_calculator = minimum_regret_profile_calculator(full_game=meta_games)
         self.mode = 0
         self.blocks = blocks
 
@@ -28,8 +30,7 @@ class PSRO_trainer(object):
         self.fast_count = 1
         self.slow_count = 1
         self.nashconvs = []
-
-
+        self.mrconvs = []
 
     def init_round(self):
         init_strategy = np.random.randint(0, self.num_strategies)
@@ -49,6 +50,7 @@ class PSRO_trainer(object):
 
     def iteration(self):
         nashconv_list = []
+        mrconv_list = []
         for _ in range(self.num_iterations):
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
             if nashconv is not None:
@@ -63,7 +65,10 @@ class PSRO_trainer(object):
             if self.meta_method_list is not None:
                 self.mode = 1 - self.mode
                 self.meta_method = self.meta_method_list[self.mode]
+            _, mrcp_value = self.mrcp_calculator(self.empirical_games)
+            mrconv_list.append(mrcp_value)
         self.nashconvs.append(nashconv_list)
+        self.mrconvs.append(mrconv_list)
 
     def loop(self):
         for _ in range(self.num_rounds):
