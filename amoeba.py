@@ -56,7 +56,7 @@ def shrink_simplex(sorted_simplex, sorted_value, func, rho = 0.5):
         fvalue.append(func(simplex[i]))
     return simplex, fvalue 
 
-def amoeba_mrcp(empirical_game, full_game, var=None, max_iter=500, ftolerance=1.e-3, xtolerance=1.e-3):
+def amoeba_mrcp(empirical_game, full_game, var='uni', max_iter=500, ftolerance=1.e-4, xtolerance=1.e-4):
     """
     Note each varibale in the amoeba variable is two times the length of the strategies
     Input:
@@ -91,8 +91,13 @@ def amoeba_mrcp(empirical_game, full_game, var=None, max_iter=500, ftolerance=1.
 
     sections = [len(ele) for ele in empirical_game]    # num strategies for players
     normalize = partial(normalize, sections=sections)  # force into simplex
-    if var is None:
+    if var=='uni':
         var = np.ones(sum(sections))      # the initial point of search from uniform
+    elif var=='rand': # random initial points
+        var = np.random.rand(sum(sections))
+    else:
+        assert len(var) == sum(sections), 'initial points incorrect shape'
+
     var = normalize(variables=var)       
 
     nvar = sum(sections)                  # total number of variables to minimize over

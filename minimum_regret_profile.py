@@ -10,13 +10,15 @@ class minimum_regret_profile_calculator(object):
     Assume the mimimum_regret_profile_calculator is called every iteration of PSRO
     applicable to multiple player case.
     """
-    def __init__(self, full_game):
+    def __init__(self, full_game, recursive=False):
         """
         Input:
             full_game     : full matrix game to calculate regret
+            recursive     : explore all subgames in the restricted index
         """
         self.full_game = full_game
         self.no_derivative_opt_method = partial(amoeba_mrcp, full_game=full_game)
+        self.recursive = recursive
         # mrcp_profile and mrcp_value records the last iteration's meta game's
         # minimum regret profile and value, which corresponds to last_empirical_game.
         # Anything besides it in the past history does not need to be
@@ -28,9 +30,54 @@ class minimum_regret_profile_calculator(object):
         self.mrcp_value = 1e5 #beware of the game who's payoff is even larger
         self.mrcp_empirical_game = None # documents the empircal game for the last mrcp
 
+    def clear(self):
+        self._last_empirical_game = None
+        self._mrcp_iteration = 0
+        self.mrcp_profile = []
+        self.mrcp_value = 1e5
+        self.mrcp_empirical_game = None
+
     def __call__(self, empirical_game):
+        # for comparing pjordan recursive and non-recursive ones
+        #profile_recursive, value_recursive = self.recursive_find_mrcp(empirical_game)
+        #self.clear()
+        #profile, value = self.find_mrcp(empirical_game)
+        #print('recursive {}  VS normal {}'.format(value_recursive,value))
+        #print('profile_recursive', profile_recursive)
+        #print('profile',profile)
+        #return profile_recursive, value_recursive
+
+        if self.recursive:
+            return self.recursive_find_mrcp(empirical_game)
+        else:
+            return self.find_mrcp(empirical_game)
+    
+    def find_mrcp(self, empirical_game, repeat=100):
         '''
-        Get all possible subgame indexes for strategies in meta game
+        Implement ways in 'analyzing complex strategc interactions in multiagent systems' by Walsh el.
+        Run amoeba number of times until the same mrcp has been found for more than 10 times
+        Input:
+            empirical_game: the strategy set players have at this iteration of p
+            repeat        : number of different initial points(different trials) to start with
+        '''
+        # first remove duplicate from empirical game
+        empirical_game = [sorted(list(set(ele))) for ele in empirical_game]
+        
+        for iters in range(repeat):
+            # initiate_starting_point
+            mrcp_mixed_strategy, mrcp_value, iteration = self.no_derivative_opt_method(empirical_game, var='rand')
+            if self.mrcp_value > mrcp_value:
+                self.mrcp_value = mrcp_value
+                self._mrcp_iteration = iteration
+                self.mrcp_empirical_game = empirical_game
+                self.mrcp_profile = mrcp_mixed_strategy
+
+        print('iteration',self._mrcp_iteration,'mrcp profile',self.mrcp_profile)
+        return self.mrcp_profile, self.mrcp_value
+
+    def recursive_find_mrcp(self, empirical_game):
+        '''
+        Get all possible subgame indexes for strategies in meta game, implements Algorithm 8 in jordan's paper
         Input:
             empirical_game: the strategy set players have at this iteration of psro
         '''

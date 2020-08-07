@@ -31,9 +31,11 @@ class PSRO_trainer(object):
         self.slow_count = 1
         self.nashconvs = []
         self.mrconvs = []
+        self.mrprofiles = []
 
     def init_round(self):
-        init_strategy = np.random.randint(0, self.num_strategies)
+        #init_strategy = np.random.randint(0, self.num_strategies)
+        init_strategy = 0
         self.empirical_games = [[init_strategy], [init_strategy]]
         self.mode = 0
 
@@ -51,7 +53,9 @@ class PSRO_trainer(object):
     def iteration(self):
         nashconv_list = []
         mrconv_list = []
-        for _ in range(self.num_iterations):
+        mrprofile_list = []
+        for it in range(self.num_iterations):
+            print('##################Iteration {}###############'.format(it))
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
             if nashconv is not None:
                 nashconv_list.append(nashconv)
@@ -65,18 +69,22 @@ class PSRO_trainer(object):
             if self.meta_method_list is not None:
                 self.mode = 1 - self.mode
                 self.meta_method = self.meta_method_list[self.mode]
-            _, mrcp_value = self.mrcp_calculator(self.empirical_games)
+            mrcp_profile, mrcp_value = self.mrcp_calculator(self.empirical_games)
             mrconv_list.append(mrcp_value)
+            mrprofile_list.append(mrcp_profile)
         self.nashconvs.append(nashconv_list)
         self.mrconvs.append(mrconv_list)
+        self.mrprofiles.append(mrprofile_list)
 
     def loop(self):
         for _ in range(self.num_rounds):
             self.init_round()
             if self.blocks:
                 self.iteration_blocks()
+                self.mrcp_calculator.clear()
             else:
                 self.iteration()
+                self.mrcp_calculator.clear()
 
     # For blocks
     def iteration_blocks(self):

@@ -101,7 +101,7 @@ def fictitious_play(meta_games, empirical_games, checkpoint_dir=None):
         nash1[i] = counter1[item]
     nash1 /= np.sum(nash1)
     nash = [nash0, nash1]
-
+    
     nash_payoffs = mixed_strategy_payoff(subgames, nash)
 
     meta_game_nash = []
