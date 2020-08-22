@@ -1,4 +1,4 @@
-from meta_strategies import double_oracle, fictitious_play
+from meta_strategies import double_oracle, fictitious_play, mrcp_solver
 from game_generator import Game_generator
 from psro_trainer import PSRO_trainer
 
@@ -62,6 +62,16 @@ def psro(generator,
                            num_iterations=num_iterations,
                            blocks=blocks)
 
+    MRCP_trainer = PSRO_trainer(meta_games=meta_games,
+                           num_strategies=generator.num_strategies,
+                           num_rounds=num_rounds,
+                           meta_method=mrcp_solver,
+                           checkpoint_dir=checkpoint_dir,
+                           meta_method_list=meta_method_list,
+                           num_iterations=num_iterations,
+                           blocks=blocks)
+
+
 #    DO_FP_trainer = PSRO_trainer(meta_games=meta_games,
 #                              num_strategies=generator.num_strategies,
 #                              num_rounds=num_rounds,
@@ -86,16 +96,28 @@ def psro(generator,
     print("#####################################")
     FP_trainer.loop()
     print("#####################################")
-    print('DO looper finished looping')
+    print('FP looper finished looping')
     print("#####################################")
+
+    MRCP_trainer.loop()
+    print("#####################################")
+    print('MRCP looper finished looping')
+    print("#####################################")
+
 #    DO_FP_trainer.loop()
 #    blocks_trainer.loop()
 
     print("The current game type is ", game_type)
-    print("DO average:", np.mean(DO_trainer.nashconvs, axis=0))
+    print("DO neco av:", np.mean(DO_trainer.neconvs, axis=0))
     print("DO mrcp av:", np.mean(DO_trainer.mrconvs, axis=0))
-    print("FP average:", np.mean(FP_trainer.nashconvs, axis=0))
+    import pdb
+    pdb.set_trace()
+    print("FP fpco av:", np.mean(FP_trainer.nashconvs, axis=0))
+    print("FP neco av:", np.mean(FP_trainer.neconvs, axis=0))
     print("FP mrcp av:", np.mean(FP_trainer.mrconvs, axis=0))
+    print("MR neco av:", np.mean(MRCP_trainer.neconvs, axis=0))
+    print("MR mrcp av:", np.mean(MRCP_trainer.mrconvs, axis=0))
+
 #    print("DO+FP average:", np.mean(DO_FP_trainer.nashconvs, axis=0))
 #    print("blocks average:", np.mean(blocks_trainer.nashconvs, axis=0))
     print("====================================================")
@@ -105,19 +127,26 @@ def psro(generator,
 
     with open(checkpoint_dir + game_type + '_meta_games.pkl','wb') as f:
         pickle.dump(meta_games, f)
-    nashconv_names = ['nashconvs_'+str(t) for t in range(len(DO_trainer.nashconvs))]
+    nashconv_names = ['nashconvs_'+str(t) for t in range(len(DO_trainer.neconvs))]
     mrconv_names = ['mrcpcons_'+str(t) for t in range(len(DO_trainer.mrconvs))]
-    df = pd.DataFrame(np.transpose(DO_trainer.nashconvs+DO_trainer.mrconvs),\
+    df = pd.DataFrame(np.transpose(DO_trainer.neconvs+DO_trainer.mrconvs),\
             columns=nashconv_names+mrconv_names)
     df.to_csv(checkpoint_dir+game_type+'_DO.csv',index=False)
     with open(checkpoint_dir + game_type + '_mrprofile_DO.pkl','wb') as f:
         pickle.dump(DO_trainer.mrprofiles, f)
 
-    df = pd.DataFrame(np.transpose(FP_trainer.nashconvs+FP_trainer.mrconvs),\
+    df = pd.DataFrame(np.transpose(FP_trainer.neconvs+FP_trainer.mrconvs),\
             columns=nashconv_names+mrconv_names)
     df.to_csv(checkpoint_dir+game_type+'_FP.csv',index=False)
     with open(checkpoint_dir + game_type + '_mrprofile_FP.pkl','wb') as f:
         pickle.dump(FP_trainer.mrprofiles, f)
+
+    df = pd.DataFrame(np.transpose(MRCP_trainer.neconvs+MRCP_trainer.mrconvs),\
+            columns=nashconv_names+mrconv_names)
+    df.to_csv(checkpoint_dir+game_type+'_MRCP.csv',index=False)
+    with open(checkpoint_dir + game_type + '_mrprofile_MRCP.pkl','wb') as f:
+        pickle.dump(DO_trainer.mrprofiles, f)
+
 
 #    with open(checkpoint_dir + game_type + '_DO_mrcp.pkl','wb') as f:
 #        pickle.dump(DO_trainer.mrconvs, f)
@@ -154,6 +183,3 @@ def main(argv):
 
 if __name__ == "__main__":
   app.run(main)
-
-
-

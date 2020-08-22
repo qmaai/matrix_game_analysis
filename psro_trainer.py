@@ -11,7 +11,17 @@ class PSRO_trainer(object):
                  checkpoint_dir,
                  meta_method_list=None,
                  num_iterations=20,
-                 blocks=False):
+                 blocks=False,
+                 calculate_neconv=True,
+                 calculate_mrcpconv=True):
+        """
+        Inputs:
+            num_rounds      : repeat psro on matrix games from #num_rounds start points
+            meta_method_list: for heuristics block switching
+            blocks          : HBS
+            calculate_neconv   : ne_conv to evaluate to evaluate the heuristics
+            calculate_mrcpconv : mrcp_conv to evaluate the heuristics
+        """
         self.meta_games = meta_games
         self.num_rounds = num_rounds
         self.meta_method = meta_method
@@ -21,6 +31,8 @@ class PSRO_trainer(object):
         self.mrcp_calculator = minimum_regret_profile_calculator(full_game=meta_games)
         self.mode = 0
         self.blocks = blocks
+        self.calculate_neconv= calculate_neconv
+        self.calculate_mrconv= calculate_mrcpconv
 
         self.empirical_games = [[], []]
         self.num_iterations = num_iterations
@@ -29,7 +41,8 @@ class PSRO_trainer(object):
         self.slow_period = 1
         self.fast_count = 1
         self.slow_count = 1
-        self.nashconvs = []
+        self.nashconvs = []  # Heuristic-conv. The name is retained for convenience sake
+        self.neconvs = []
         self.mrconvs = []
         self.mrprofiles = []
 
@@ -52,16 +65,13 @@ class PSRO_trainer(object):
 
     def iteration(self):
         nashconv_list = []
+        neconv_list = []
         mrconv_list = []
         mrprofile_list = []
         for it in range(self.num_iterations):
             print('##################Iteration {}###############'.format(it))
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
-            if nashconv is not None:
-                nashconv_list.append(nashconv)
-            else:
-                _, nashconv = double_oracle(self.meta_games, self.empirical_games, self.checkpoint_dir)
-                nashconv_list.append(nashconv)
+            nashconv_list.append(nashconv)
             self.empirical_games[0].append(dev_strs[0])
             self.empirical_games[0] = sorted(self.empirical_games[0])
             self.empirical_games[1].append(dev_strs[1])
@@ -69,12 +79,29 @@ class PSRO_trainer(object):
             if self.meta_method_list is not None:
                 self.mode = 1 - self.mode
                 self.meta_method = self.meta_method_list[self.mode]
-            mrcp_profile, mrcp_value = self.mrcp_calculator(self.empirical_games)
-            mrconv_list.append(mrcp_value)
-            mrprofile_list.append(mrcp_profile)
+
+            if self.calculate_neconv:
+                if self.meta_method.__name__!='double_oracle':
+                    _, neconv = double_oracle(self.meta_games,
+                                              self.empirical_games,
+                                              self.checkpoint_dir)
+                    neconv_list.append(neconv)
+                else:
+                    neconv_list.append(nashconv) 
+
+            if self.calculate_mrconv:
+                if self.meta_method.__name__!='mrcp_solver':
+                    mrcp_profile, mrcp_value = self.mrcp_calculator(self.empirical_games)
+                    mrconv_list.append(mrcp_value)
+                    mrprofile_list.append(mrcp_profile)
+                else:
+                    mrconv_list.append(nashconv)
+                    mrprofile_list.append(self.meta_method.mrcp_calculator.mrcp_profile)
+
         self.nashconvs.append(nashconv_list)
         self.mrconvs.append(mrconv_list)
         self.mrprofiles.append(mrprofile_list)
+        self.neconvs.append(neconv_list)
 
     def loop(self):
         for _ in range(self.num_rounds):

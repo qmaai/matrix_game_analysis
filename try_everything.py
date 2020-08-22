@@ -3,7 +3,8 @@ import os
 import datetime
 import game_generator
 from psro_trainer import PSRO_trainer
-from meta_strategies import mixed_strategy_payoff, deviation_strategy, double_oracle, fictitious_play
+from utils import *
+from meta_strategies import double_oracle,fictitious_play
 
 meta_game = np.array([[1,2,3],
                       [4,5,6],

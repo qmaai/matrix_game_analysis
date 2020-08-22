@@ -1,37 +1,13 @@
 from math import sqrt
 import numpy as np
 from functools import partial
-from meta_strategies import deviation_strategy, mixed_strategy_payoff
+from utils import regret_of_variable 
 
 # Amoeba uses the simplex method of Nelder and Mead to maximize a
 # function of 1 or more variables, constraints are put into place
 # according to Patrick Jordan's Thesis "practical strategic reaso
 # ning with applications in market games" section 7.2
 #   Copyright (C) 2020  Gary Qiurui Ma, Strategic Reasing Group
-
-
-def regret_of_variable(prob_var, empirical_games, meta_game):
-    """
-    Only works for two player case
-    Calculate the function value of one data point prob_var
-    in amoeba method, Reshape and expand the probability var into full shape
-    Input:
-        prob_var       : variable that amoeba directly search over
-        empirical_games: a list of list, indicating player's strategy sets
-        meta_game      : the full game matrix to calculate deviation from
-    """
-    probs = []
-    index = np.cumsum([len(ele) for ele in empirical_games])
-    pointer = 0
-    for i, idx in enumerate(empirical_games):
-        prob = np.zeros(meta_game[0].shape[i])
-        np.put(prob, idx, prob_var[pointer:index[i]])
-        pointer = index[i]
-        probs.append(prob)
-
-    _, dev_payoff = deviation_strategy(meta_game,probs) 
-    payoff = mixed_strategy_payoff(meta_game, probs)
-    return sum(dev_payoff)-sum(payoff)
 
 def check_within_probability_simplex(var):
     '''
