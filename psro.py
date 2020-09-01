@@ -35,7 +35,13 @@ def psro(generator,
     elif game_type == "symmetric_zero_sum":
         meta_games = generator.general_sum_game()
     else:
-        raise ValueError
+        for pkl in os.listdir('efg_game'):
+            print(pkl)
+            if pkl.split('.pkl')[0] == game_type:
+                with open('efg_game/'+pkl,'rb') as f:
+                    meta_games = pickle.load(f)
+        if not 'meta_games' in locals():
+            raise ValueError
     
     # for example 1 in paper
     # meta_games = [np.array([[0,-0.1,-3],[0.1,0,2],[3,-2,0]]),np.array([[0,0.1,3],[-0.1,0,-2],[-3,2,0]])]
@@ -110,8 +116,6 @@ def psro(generator,
     print("The current game type is ", game_type)
     print("DO neco av:", np.mean(DO_trainer.neconvs, axis=0))
     print("DO mrcp av:", np.mean(DO_trainer.mrconvs, axis=0))
-    import pdb
-    pdb.set_trace()
     print("FP fpco av:", np.mean(FP_trainer.nashconvs, axis=0))
     print("FP neco av:", np.mean(FP_trainer.neconvs, axis=0))
     print("FP mrcp av:", np.mean(FP_trainer.mrconvs, axis=0))
