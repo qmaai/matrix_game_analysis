@@ -1,5 +1,12 @@
 import numpy as np
+import random
 from open_spiel.python.algorithms.psro_v2 import meta_strategies
+
+def set_random_seed(seed=None):
+    seed = np.random.randint(low=0,high=1e5) if seed is None else seed
+    np.random.seed(seed)
+    random.seed(seed)
+    return seed
 
 
 def mixed_strategy_payoff(meta_games, probs):

@@ -71,8 +71,7 @@ class minimum_regret_profile_calculator(object):
                 self._mrcp_iteration = iteration
                 self.mrcp_empirical_game = empirical_game
                 self.mrcp_profile = mrcp_mixed_strategy
-
-        print('iteration',self._mrcp_iteration,'mrcp profile',self.mrcp_profile)
+        print('iteration {} mrcp value {} profile {}'.format(self._mrcp_iteration,self.mrcp_value,self.mrcp_profile))
         return self.mrcp_profile, self.mrcp_value
 
     def recursive_find_mrcp(self, empirical_game):
@@ -137,10 +136,5 @@ class minimum_regret_profile_calculator(object):
                     self.mrcp_profile.append([mrcp_mixed_strategy[p][li_ind[p].index(ele)] if ele in li_ind[p] else 0 for ele in empirical_game[p]])
 
         self._last_empirical_game = empirical_game
-        #print(self.full_game)
-        #print('strategy set',empirical_game)
         print('iteration',self._mrcp_iteration,'mrcp profile',self.mrcp_profile)
-        #print('mrcp_value',self.mrcp_value)
-        #import pdb
-        #pdb.set_trace()
         return self.mrcp_profile, self.mrcp_value

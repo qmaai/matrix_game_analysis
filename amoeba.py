@@ -32,7 +32,7 @@ def shrink_simplex(sorted_simplex, sorted_value, func, rho = 0.5):
         fvalue.append(func(simplex[i]))
     return simplex, fvalue 
 
-def amoeba_mrcp(empirical_game, full_game, var='uni', max_iter=500, ftolerance=1.e-4, xtolerance=1.e-4):
+def amoeba_mrcp(empirical_game, full_game, var='uni', max_iter=5000, ftolerance=1.e-4, xtolerance=1.e-4):
     """
     Note each varibale in the amoeba variable is two times the length of the strategies
     Input:

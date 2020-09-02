@@ -1,4 +1,5 @@
 import numpy as np
+from utils import set_random_seed
 from exploration import pure_exp
 from meta_strategies import double_oracle
 from minimum_regret_profile import minimum_regret_profile_calculator
@@ -12,15 +13,19 @@ class PSRO_trainer(object):
                  meta_method_list=None,
                  num_iterations=20,
                  blocks=False,
+                 seed=None,
                  calculate_neconv=True,
-                 calculate_mrcpconv=True):
+                 calculate_mrcpconv=True,
+                 init_strategies=None):
         """
         Inputs:
             num_rounds      : repeat psro on matrix games from #num_rounds start points
             meta_method_list: for heuristics block switching
             blocks          : HBS
+            seed            : a integer. If provided, reset every round to guarantee that mrcp calculation is deterministic given an empirical game:
             calculate_neconv   : ne_conv to evaluate to evaluate the heuristics
             calculate_mrcpconv : mrcp_conv to evaluate the heuristics
+            init_strategies    : a len(num_rounds) list or a number
         """
         self.meta_games = meta_games
         self.num_rounds = num_rounds
@@ -31,8 +36,15 @@ class PSRO_trainer(object):
         self.mrcp_calculator = minimum_regret_profile_calculator(full_game=meta_games)
         self.mode = 0
         self.blocks = blocks
+        self.seed = seed
         self.calculate_neconv= calculate_neconv
         self.calculate_mrconv= calculate_mrcpconv
+        if init_strategies is not None:
+            assert isinstance(init_strategies,int) or len(init_strategies)==num_rounds, \
+                    "provide initial strategies with right length"
+            self.init_strategies = np.array([init_strategies for _ in range(num_rounds)],dtype=int) if isinstance(init_strategies,int) else np.array(init_strategies,dtype=int)
+        else:
+            self.init_strategies = np.random.randint(0, num_strategies, num_rounds)
 
         self.empirical_games = [[], []]
         self.num_iterations = num_iterations
@@ -46,9 +58,9 @@ class PSRO_trainer(object):
         self.mrconvs = []
         self.mrprofiles = []
 
-    def init_round(self):
+    def init_round(self,init_strategy):
         #init_strategy = np.random.randint(0, self.num_strategies)
-        init_strategy = 0
+        #init_strategy = 0
         self.empirical_games = [[init_strategy], [init_strategy]]
         self.mode = 0
 
@@ -68,6 +80,18 @@ class PSRO_trainer(object):
         neconv_list = []
         mrconv_list = []
         mrprofile_list = []
+
+        # Tricky Detail: mrcp does not calculate NE's first empirical game's mrcp value
+        # ne does not calculate mrcp's first empirical game's NE-based regret
+        if self.calculate_mrconv:
+            if self.meta_method.__name__!='mrcp_solver':
+                mrcp_profile, mrcp_value = self.mrcp_calculator(self.empirical_games)
+                mrconv_list.append(mrcp_value)
+                mrprofile_list.append(mrcp_profile)
+        if self.meta_method.__name__!='double_oracle':
+            _, neconv = double_oracle(self.meta_games,self.empirical_games,self.checkpoint_dir)
+            neconv_list.append(neconv)
+
         for it in range(self.num_iterations):
             print('##################Iteration {}###############'.format(it))
             dev_strs, nashconv = self.meta_method(self.meta_games, self.empirical_games, self.checkpoint_dir)
@@ -97,21 +121,36 @@ class PSRO_trainer(object):
                 else:
                     mrconv_list.append(nashconv)
                     mrprofile_list.append(self.meta_method.mrcp_calculator.mrcp_profile)
-
+        
+        # Tricky part: Nashconv does not add the last value after update
+        # mrcp does not add its last own value after its last update
+        # NE does not add its last own value after its last update
+        _,nashconv = self.meta_method(self.meta_games,self.empirical_games,self.checkpoint_dir)
+        nashconv_list.append(nashconv)
+        if self.meta_method.__name__=='mrcp_solver':
+            mrconv_list.append(nashconv)
+            mrprofile_list.append(self.meta_method.mrcp_calculator.mrcp_profile)
+        if self.meta_method.__name__=='double_oracle':
+            neconv_list.append(nashconv)
+        
         self.nashconvs.append(nashconv_list)
         self.mrconvs.append(mrconv_list)
         self.mrprofiles.append(mrprofile_list)
         self.neconvs.append(neconv_list)
 
     def loop(self):
-        for _ in range(self.num_rounds):
-            self.init_round()
+        for i in range(self.num_rounds):
+            self.init_round(self.init_strategies[i])
+            # reset to same random seed to guarantee MRCP
+            # being deterministic given empirical game
+            if self.seed is not None:
+                set_random_seed(self.seed) 
             if self.blocks:
                 self.iteration_blocks()
-                self.mrcp_calculator.clear()
             else:
                 self.iteration()
-                self.mrcp_calculator.clear()
+
+            self.mrcp_calculator.clear()
 
     # For blocks
     def iteration_blocks(self):
